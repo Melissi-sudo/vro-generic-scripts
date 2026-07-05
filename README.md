@@ -9,7 +9,6 @@ This repository is intended to house multiple game-specific tools in a single pl
 ### Indian Truck Simulator
 - Assist tool for Indian Truck Simulator.
 - Designed to provide gameplay assistance and quality-of-life features.
-- Additional details and usage instructions are available within the script folder.
 
 ## Planned Support
 
