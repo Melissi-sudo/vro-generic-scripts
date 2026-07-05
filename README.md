@@ -29,7 +29,7 @@ These scripts are provided for educational and research purposes. Use them respo
 
 ## Contributing
 
-Contributions, suggestions, and improvements are welcome. Feel free to open an issue or submit a pull request. The code is open-source but requires credit the MIT license
+Contributions, suggestions, and improvements are welcome. Feel free to open an issue or submit a pull request.
 
 ## Check out my Universal View Assist Suite:
 https://github.com/Melissi-sudo/view-assist-suite
