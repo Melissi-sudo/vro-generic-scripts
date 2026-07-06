@@ -2,6 +2,7 @@ local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Folder Assignments
 local oresFolder = workspace:WaitForChild("Ores")
@@ -24,6 +25,8 @@ local targets = {
 }
 local selectedTarget = targets[1]
 local currentHighlights = {}
+local isMinimized = false
+local isDropdownOpen = false
 
 -- Track Respawns Safely
 player.CharacterAdded:Connect(function(newChar)
@@ -37,26 +40,27 @@ screenGui.Name = "VroUtilityGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Toast Notification Engine
+-- Toast Notification Engine (Fixed Text Splitting & Color Blindness)
 local function showNotification(text)
     local notif = Instance.new("TextLabel")
-    notif.Size = UDim2.new(0, 220, 0, 35)
-    notif.Position = UDim2.new(0.5, -110, 0.05, -50)
-    notif.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    notif.TextColor3 = Color3.fromRGB(255, 25, 25)
+    notif.Size = UDim2.new(0, 320, 0, 40) -- Expanded width to prevent text overflow
+    notif.Position = UDim2.new(0.5, -160, 0.05, -60)
+    notif.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    notif.TextColor3 = Color3.fromRGB(245, 245, 245) -- Changed to clean light gray/white for high readability
     notif.Font = Enum.Font.GothamBold
-    notif.TextSize = 13
-    notif.Text = "[VRO] " .. text:upper()
+    notif.TextSize = 12
+    notif.Text = "[VRO SYSTEM]  " .. text:upper()
+    notif.TextWrapped = true
     notif.Parent = screenGui
     
     Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 6)
     local s = Instance.new("UIStroke", notif)
-    s.Color = Color3.fromRGB(255, 0, 0)
+    s.Color = Color3.fromRGB(220, 0, 0) -- Sharp red accent border
     s.Thickness = 1.5
 
-    notif:TweenPosition(UDim2.new(0.5, -110, 0.05, 0), "Out", "Back", 0.3, true)
+    notif:TweenPosition(UDim2.new(0.5, -160, 0.05, 0), "Out", "Back", 0.3, true)
     
-    task.delay(2.5, function()
+    task.delay(3, function()
         pcall(function()
             TweenService:Create(notif, TweenInfo.new(0.4), {TextTransparency = 1, BackgroundTransparency = 1}):Play()
             TweenService:Create(s, TweenInfo.new(0.4), {Transparency = 1}):Play()
@@ -72,58 +76,100 @@ mainFrame.Size = UDim2.new(0, 250, 0, 160)
 mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
 mainFrame.Parent = screenGui
 
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
 local stroke = Instance.new("UIStroke", mainFrame)
-stroke.Color = Color3.fromRGB(255, 0, 0)
+stroke.Color = Color3.fromRGB(220, 0, 0)
 stroke.Thickness = 1.5
 
--- Header Label
+-- Dragging Functionality Engine
+local dragging, dragInput, dragStart, startPos
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateDrag(input)
+    end
+end)
+
+-- Header Label text
 local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, -20, 0, 30)
-label.Position = UDim2.new(0, 10, 0, 10)
+label.Size = UDim2.new(1, -50, 0, 35)
+label.Position = UDim2.new(0, 10, 0, 0)
 label.BackgroundTransparency = 1
 label.Text = "VRO UTILITY SYSTEM"
 label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.Font = Enum.Font.GothamBold
-label.TextSize = 13
+label.TextSize = 12
 label.TextXAlignment = Enum.TextXAlignment.Left
 label.Parent = mainFrame
 
--- Dropdown Main Button
+-- Content Canvas Frame (Holds all elements relative to collapse logic easily)
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -35)
+contentFrame.Position = UDim2.new(0, 0, 0, 35)
+contentFrame.BackgroundTransparency = 1
+contentFrame.ClipsDescendants = true
+contentFrame.Parent = mainFrame
+
+-- Dropdown Header Selector Button
 local dropdown = Instance.new("TextButton")
 dropdown.Size = UDim2.new(1, -20, 0, 32)
-dropdown.Position = UDim2.new(0, 10, 0, 42)
+dropdown.Position = UDim2.new(0, 10, 0, 5)
 dropdown.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 dropdown.Text = selectedTarget.name .. " [" .. selectedTarget.type .. "]"
 dropdown.TextColor3 = Color3.fromRGB(220, 220, 220)
 dropdown.Font = Enum.Font.GothamSemibold
-dropdown.TextSize = 13
-dropdown.Parent = mainFrame
+dropdown.TextSize = 12
+dropdown.Parent = contentFrame
 
 Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0, 6)
 local dropStroke = Instance.new("UIStroke", dropdown)
-dropStroke.Color = Color3.fromRGB(40, 40, 40)
+dropStroke.Color = Color3.fromRGB(45, 45, 45)
 
--- Dropdown Menu (Scrolling Frame Layout)
+-- Dropdown Selection Scrolling Menu Box
 local menuMaxHeight = math.min(#targets * 30, 150)
 local menu = Instance.new("ScrollingFrame")
 menu.Size = UDim2.new(1, -20, 0, menuMaxHeight)
-menu.Position = UDim2.new(0, 10, 0, 80)
+menu.Position = UDim2.new(0, 10, 0, 42)
 menu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menu.Visible = false
 menu.BorderSizePixel = 0
 menu.CanvasSize = UDim2.new(0, 0, 0, #targets * 30)
 menu.ScrollBarThickness = 4
-menu.ScrollBarImageColor3 = Color3.fromRGB(255, 0, 0)
-menu.Parent = mainFrame
+menu.ScrollBarImageColor3 = Color3.fromRGB(220, 0, 0)
+menu.Parent = contentFrame
 
 Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 6)
 local menuStroke = Instance.new("UIStroke", menu)
-menuStroke.Color = Color3.fromRGB(40, 40, 40)
+menuStroke.Color = Color3.fromRGB(45, 45, 45)
 
--- Bottom Status Count Tracker
+-- Live Status Counter Label Tracker
 local counterLabel = Instance.new("TextLabel")
 counterLabel.Size = UDim2.new(1, -20, 0, 20)
 counterLabel.Position = UDim2.new(0, 10, 1, -70)
@@ -131,42 +177,39 @@ counterLabel.BackgroundTransparency = 1
 counterLabel.Text = "Targets Found: 0"
 counterLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 counterLabel.Font = Enum.Font.GothamSemibold
-counterLabel.TextSize = 12
+counterLabel.TextSize = 11
 counterLabel.TextXAlignment = Enum.TextXAlignment.Left
-counterLabel.Parent = mainFrame
+counterLabel.Parent = contentFrame
 
--- Action Activation Button (Stays safely hard-anchored to the bottom)
+-- Primary Execution Action Button (Locked perfectly via content relative layout canvas)
 local actionBtn = Instance.new("TextButton")
 actionBtn.Size = UDim2.new(1, -20, 0, 35)
 actionBtn.Position = UDim2.new(0, 10, 1, -45)
-actionBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+actionBtn.BackgroundColor3 = Color3.fromRGB(190, 0, 0)
 actionBtn.Text = "EXECUTE TELEPORT"
 actionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 actionBtn.Font = Enum.Font.GothamBold
-actionBtn.TextSize = 13
-actionBtn.Parent = mainFrame
+actionBtn.TextSize = 12
+actionBtn.Parent = contentFrame
 
 Instance.new("UICorner", actionBtn).CornerRadius = UDim.new(0, 6)
 
--- Streamlined Health Value Object Engine (Applies to both Ores & Enemies seamlessly)
+-- Target Life Value Verification Engine
 local function isValidTarget(model)
     if not model:IsA("Model") then return false end
     
-    -- Checks specifically for the Int/Number Health Value instance configuration
     local healthObj = model:FindFirstChild("Health")
     if healthObj and (healthObj:IsA("IntValue") or healthObj:IsA("NumberValue")) then
         return healthObj.Value > 0
     end
     
-    -- Backup check: In case the health setup uses attributes instead of an object
     local healthAttr = model:GetAttribute("Health")
     if healthAttr then return healthAttr > 0 end
     
-    -- Universal Fallback: If no numerical health indicator exists, check if it has parts to teleport to
     return (model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")) ~= nil
 end
 
--- Refresh Highlights and Counts Elements
+-- Refresh Highlights maps
 local function updateUtilityState()
     for _, hl in ipairs(currentHighlights) do
         if hl then hl:Destroy() end
@@ -181,12 +224,11 @@ local function updateUtilityState()
             if model.Name == selectedTarget.name and isValidTarget(model) then
                 count = count + 1
                 
-                -- Construct Vro-style Highlight Outlines
                 local hl = Instance.new("Highlight")
-                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                hl.FillColor = Color3.fromRGB(220, 0, 0)
                 hl.FillTransparency = 0.7
                 hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                hl.OutlineTransparency = 0.1
+                hl.OutlineTransparency = 0.15
                 hl.Adornee = model
                 hl.Parent = model
                 table.insert(currentHighlights, hl)
@@ -198,7 +240,7 @@ local function updateUtilityState()
     return count
 end
 
--- Populate Dropdown Menu Buttons Dynamically
+-- Populate Dropdown Menu Options Items
 for i, target in ipairs(targets) do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -10, 0, 30)
@@ -215,17 +257,20 @@ for i, target in ipairs(targets) do
         selectedTarget = target
         dropdown.Text = target.name .. " [" .. target.type .. "]"
         menu.Visible = false
+        isDropdownOpen = false
         mainFrame:TweenSize(UDim2.new(0, 250, 0, 160), "Out", "Quad", 0.2, true)
         
         local total = updateUtilityState()
-        showNotification(target.name .. " Selected: " .. total .. " available")
+        showNotification(target.name .. " marked: (" .. total .. " active)")
     end)
 end
 
--- Dropdown Expand Toggle Logic
+-- Dropdown Drop Expand Management Engine
 dropdown.MouseButton1Click:Connect(function()
-    menu.Visible = not menu.Visible
-    if menu.Visible then
+    if isMinimized then return end
+    isDropdownOpen = not isDropdownOpen
+    menu.Visible = isDropdownOpen
+    if isDropdownOpen then
         mainFrame:TweenSize(UDim2.new(0, 250, 0, 160 + menuMaxHeight), "Out", "Quad", 0.2, true)
         updateUtilityState()
     else
@@ -233,7 +278,37 @@ dropdown.MouseButton1Click:Connect(function()
     end
 end)
 
--- Main Teleport Logic Execution Block
+-- Minimize Button Controller Engine
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 30, 0, 25)
+minimizeBtn.Position = UDim2.new(1, -35, 0, 5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.fromRGB(220, 0, 0)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 14
+minimizeBtn.Parent = mainFrame
+
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 4)
+Instance.new("UIStroke", minimizeBtn).Color = Color3.fromRGB(50, 50, 50)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        -- Close sub menus inside canvas tree frame instantly
+        menu.Visible = false
+        isDropdownOpen = false
+        contentFrame.Visible = false
+        minimizeBtn.Text = "+"
+        mainFrame:TweenSize(UDim2.new(0, 250, 0, 35), "Out", "Quad", 0.15, true)
+    else
+        minimizeBtn.Text = "-"
+        mainFrame:TweenSize(UDim2.new(0, 250, 0, 160), "Out", "Quad", 0.15, true)
+        task.delay(0.1, function() contentFrame.Visible = true end)
+    end
+end)
+
+-- Core Processing Teleport Target Sequence
 local function executeTeleport()
     if not hrp or not hrp.Parent then
         hrp = character:FindFirstChild("HumanoidRootPart")
@@ -261,16 +336,16 @@ local function executeTeleport()
 
     if closestTarget then
         hrp.CFrame = closestTarget.CFrame + Vector3.new(0, 5, 0)
-        showNotification("Teleported to " .. selectedTarget.name)
+        showNotification("Warped to " .. selectedTarget.name)
     else
-        showNotification("No valid " .. selectedTarget.name .. " found!")
+        showNotification("No targets for " .. selectedTarget.name .. " found!")
     end
     updateUtilityState()
 end
 
 actionBtn.MouseButton1Click:Connect(executeTeleport)
 
--- Background Thread Loop: Refreshes data sync maps every 2 seconds
+-- Active Verification Map Loop Thread
 task.spawn(function()
     while true do
         updateUtilityState()
@@ -278,5 +353,4 @@ task.spawn(function()
     end
 end)
 
--- Initial Status Initialization Setup Run
 updateUtilityState()
