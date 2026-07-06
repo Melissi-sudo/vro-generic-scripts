@@ -14,15 +14,6 @@ This repository is intended to house multiple game-specific tools in a single pl
 
 As development continues, support for additional games will be added, including their own dedicated assist tools and utilities.
 
-## Repository Structure
-
-```
-vro-generic-scripts/
-├── VroIndianTruckSimulator.lua/
-│  
-└── README.md
-```
-
 ## Disclaimer
 
 These scripts are provided for educational and research purposes. Use them responsibly and ensure that your use complies with the terms of service and rules of the games you use them with.
