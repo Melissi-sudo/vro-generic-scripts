@@ -6,9 +6,9 @@ This repository is intended to house multiple game-specific tools in a single pl
 
 ## Current Scripts
 
-### Indian Truck Simulator
+- Indian Truck Simulator
 
-### Cave Diving Experience
+- Cave Diving Experience
 
 ## Planned Support
 
