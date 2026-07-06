@@ -7,8 +7,8 @@ This repository is intended to house multiple game-specific tools in a single pl
 ## Current Scripts
 
 ### Indian Truck Simulator
-- Assist tool for Indian Truck Simulator.
-- Designed to provide gameplay assistance and quality-of-life features.
+
+### Cave Diving Experience
 
 ## Planned Support
 
