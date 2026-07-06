@@ -8,10 +8,15 @@ local UserInputService = game:GetService("UserInputService")
 local oresFolder = workspace:WaitForChild("Ores")
 local enemiesFolder = workspace:WaitForChild("SwordEnemies")
 
+---//
+local lockedSuiteName = string.char(86,114,111,32,67,97,118,101,32,68,105,118,105,110,103,32,69,120,112,101,114,105,101,110,99,101,32,83,117,105,116,101)
+---\\
+
 -- Combined Targets Setup
 local targets = {
     {name = "Coal", type = "Ore"},
     {name = "Copper", type = "Ore"},
+    {name = "Iron", type = "Ore"}, 
     {name = "Gold", type = "Ore"},
     {name = "Titanium", type = "Ore"},
     {name = "Diamond", type = "Ore"},
@@ -40,25 +45,25 @@ screenGui.Name = "VroUtilityGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Toast Notification Engine (Fixed Text Splitting & Color Blindness)
+-- Toast Notification Engine
 local function showNotification(text)
     local notif = Instance.new("TextLabel")
-    notif.Size = UDim2.new(0, 320, 0, 40) -- Expanded width to prevent text overflow
-    notif.Position = UDim2.new(0.5, -160, 0.05, -60)
+    notif.Size = UDim2.new(0, 340, 0, 45)
+    notif.Position = UDim2.new(0.5, -170, 0.05, -60)
     notif.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    notif.TextColor3 = Color3.fromRGB(245, 245, 245) -- Changed to clean light gray/white for high readability
+    notif.TextColor3 = Color3.fromRGB(245, 245, 245)
     notif.Font = Enum.Font.GothamBold
-    notif.TextSize = 12
-    notif.Text = "[VRO SYSTEM]  " .. text:upper()
+    notif.TextSize = 11
+    notif.Text = "[" .. lockedSuiteName:upper() .. "]\n" .. text:upper()
     notif.TextWrapped = true
     notif.Parent = screenGui
     
     Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 6)
     local s = Instance.new("UIStroke", notif)
-    s.Color = Color3.fromRGB(220, 0, 0) -- Sharp red accent border
+    s.Color = Color3.fromRGB(220, 0, 0)
     s.Thickness = 1.5
 
-    notif:TweenPosition(UDim2.new(0.5, -160, 0.05, 0), "Out", "Back", 0.3, true)
+    notif:TweenPosition(UDim2.new(0.5, -170, 0.05, 0), "Out", "Back", 0.3, true)
     
     task.delay(3, function()
         pcall(function()
@@ -72,7 +77,7 @@ end
 
 -- Main Frame (Vro Matte Black Layout)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 250, 0, 160)
+mainFrame.Size = UDim2.new(0, 270, 0, 160)
 mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
@@ -117,19 +122,19 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Header Label text
+-- Header Label text (Pulls directly from protected bytecode)
 local label = Instance.new("TextLabel")
 label.Size = UDim2.new(1, -50, 0, 35)
 label.Position = UDim2.new(0, 10, 0, 0)
 label.BackgroundTransparency = 1
-label.Text = "VRO UTILITY SYSTEM"
+label.Text = lockedSuiteName:upper()
 label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.Font = Enum.Font.GothamBold
-label.TextSize = 12
+label.TextSize = 11
 label.TextXAlignment = Enum.TextXAlignment.Left
 label.Parent = mainFrame
 
--- Content Canvas Frame (Holds all elements relative to collapse logic easily)
+-- Content Canvas Frame
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, 0, 1, -35)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
@@ -181,7 +186,7 @@ counterLabel.TextSize = 11
 counterLabel.TextXAlignment = Enum.TextXAlignment.Left
 counterLabel.Parent = contentFrame
 
--- Primary Execution Action Button (Locked perfectly via content relative layout canvas)
+-- Primary Execution Action Button
 local actionBtn = Instance.new("TextButton")
 actionBtn.Size = UDim2.new(1, -20, 0, 35)
 actionBtn.Position = UDim2.new(0, 10, 1, -45)
@@ -258,7 +263,7 @@ for i, target in ipairs(targets) do
         dropdown.Text = target.name .. " [" .. target.type .. "]"
         menu.Visible = false
         isDropdownOpen = false
-        mainFrame:TweenSize(UDim2.new(0, 250, 0, 160), "Out", "Quad", 0.2, true)
+        mainFrame:TweenSize(UDim2.new(0, 270, 0, 160), "Out", "Quad", 0.2, true)
         
         local total = updateUtilityState()
         showNotification(target.name .. " marked: (" .. total .. " active)")
@@ -271,10 +276,10 @@ dropdown.MouseButton1Click:Connect(function()
     isDropdownOpen = not isDropdownOpen
     menu.Visible = isDropdownOpen
     if isDropdownOpen then
-        mainFrame:TweenSize(UDim2.new(0, 250, 0, 160 + menuMaxHeight), "Out", "Quad", 0.2, true)
+        mainFrame:TweenSize(UDim2.new(0, 270, 0, 160 + menuMaxHeight), "Out", "Quad", 0.2, true)
         updateUtilityState()
     else
-        mainFrame:TweenSize(UDim2.new(0, 250, 0, 160), "Out", "Quad", 0.2, true)
+        mainFrame:TweenSize(UDim2.new(0, 270, 0, 160), "Out", "Quad", 0.2, true)
     end
 end)
 
@@ -295,15 +300,14 @@ Instance.new("UIStroke", minimizeBtn).Color = Color3.fromRGB(50, 50, 50)
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        -- Close sub menus inside canvas tree frame instantly
         menu.Visible = false
         isDropdownOpen = false
         contentFrame.Visible = false
         minimizeBtn.Text = "+"
-        mainFrame:TweenSize(UDim2.new(0, 250, 0, 35), "Out", "Quad", 0.15, true)
+        mainFrame:TweenSize(UDim2.new(0, 270, 0, 35), "Out", "Quad", 0.15, true)
     else
         minimizeBtn.Text = "-"
-        mainFrame:TweenSize(UDim2.new(0, 250, 0, 160), "Out", "Quad", 0.15, true)
+        mainFrame:TweenSize(UDim2.new(0, 270, 0, 160), "Out", "Quad", 0.15, true)
         task.delay(0.1, function() contentFrame.Visible = true end)
     end
 end)
